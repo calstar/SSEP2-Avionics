@@ -1080,7 +1080,7 @@ void Log_Data(uint32_t data)
 	else
 	{
 		//Open file for writing
-		if(f_open(&file, file_name, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
+		if(f_open(&file, filename, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 		{
 			Error_Handler();
 		}

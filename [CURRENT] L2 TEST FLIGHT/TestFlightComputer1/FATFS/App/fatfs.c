@@ -36,19 +36,17 @@ void MX_FATFS_Init(void)
   f_mount(&SDFatFS, (TCHAR const*)SDPath, 0);
   FILINFO fno;
   FRESULT result;
-  for(int idx = 0; idx < 100; idx++)
+  for (int idx = 0; idx < 100; idx++)
   {
-
-	char path[20];
-	snprintf(path, 20, "FILENAME%d.txt", idx);
-	result = f_stat(path, &fno);
+	snprintf(filename, 20, "FILENAME%d.txt", idx);
+	result = f_stat(filename, &fno);
 	if (result != FR_OK)
 	{
-		Error_Handler();
-	} else if (result == FR_NO_FILE)
+	  Error_Handler();
+	}
+	else if (result == FR_NO_FILE)
 	{
-		strncpy(path, file_name, 20);
-		break;
+	  break;
 	}
   }
 

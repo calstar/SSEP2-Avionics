@@ -33,14 +33,13 @@
 
 extern uint8_t retSD; /* Return value for SD */
 extern char SDPath[4]; /* SD logical drive path */
-extern char file_name[20];
 extern FATFS SDFatFS; /* File system object for SD logical drive */
 extern FIL SDFile; /* File object for SD */
 
 void MX_FATFS_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+extern char filename[20];
 /* USER CODE END Prototypes */
 #ifdef __cplusplus
 }

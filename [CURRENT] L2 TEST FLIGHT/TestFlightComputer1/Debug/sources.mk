@@ -42,4 +42,8 @@ Core/Src \
 Core/Startup \
 Core/ThreadSafe \
 Drivers/STM32H7xx_HAL_Driver/Src \
+FATFS/App \
+FATFS/Target \
+Middlewares/Third_Party/FatFs/src \
+Middlewares/Third_Party/FatFs/src/option \
 
