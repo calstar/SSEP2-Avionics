@@ -170,7 +170,6 @@ int main(void)
 
   /* USER CODE SD END 2 */
 
-
   while (1)
   {
     /* USER CODE END WHILE */
@@ -182,49 +181,8 @@ int main(void)
 
 
 
-uint16_t sector = 0;
-FATFS FatFS;
 
 
-void Log_Data(uint32_t data)
-{
-	FRESULT write; /* FatFs function common result code */
-	uint32_t bytes_to_write = strlen((char *)data);
-	uint32_t bytes_written; /* File write/read counts */
-	uint8_t wtext[] = "message"; /* File write buffer */
-	uint8_t rtext[_MAX_SS];/* File read buffer */
-	FIL fil;
-
-    f_mount(&FatFS, (TCHAR const*)SDPath, 0);
-
-
-	if(f_mkfs((TCHAR const*)SDPath, FM_ANY, 0, rtext, sizeof(rtext)) != FR_OK)
-  	    {
-  			Error_Handler();
-  	    }
-  		else
-  		{
-  			//Open file for writing (Create)
-  			if(f_open(&fil, "File.txt", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
-  			{
-  				//Error_opening file
-  			}
-  			else
-  			{
-  				//Write to the text file
-  				write = f_write(&fil, (void *)data, bytes_to_write, (void *)&bytes_written);
-  				if((byteswritten == 0) || (res != FR_OK))
-  				{
-  					//Nothing written
-  				}
-  				else
-  				{
-
-  					f_close(&SDFile);
-  				}
-  			}
-  		}
-}
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -1100,6 +1058,47 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void Log_Data(uint32_t data)
+{
+	FRESULT result; /* FatFs function common result code */
+	uint32_t bytes_to_write = sizeof(data);
+	uint32_t bytes_written; /* File write/read counts */
+	uint8_t rtext[_MAX_SS];/* File read buffer */
+	FIL file;
+
+	//Return if nothing to write
+	if (bytes_to_write == 0)
+	{
+	  return;
+	}
+	//Make new FatFS volume
+	if(f_mkfs((TCHAR const*)SDPath, FM_ANY, 0, rtext, sizeof(rtext)) != FR_OK)
+	{
+		Error_Handler();
+	}
+	else
+	{
+		//Open file for writing
+		if(f_open(&file, file_name, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
+		{
+			Error_Handler();
+		}
+		else
+		{
+			//Write to the text file
+			result = f_write(&file, (void *)data, bytes_to_write, (void *)&bytes_written);
+			if((bytes_written == 0) || (result != FR_OK))
+			{
+				Error_Handler();
+			}
+			else
+			{
+				f_close(&file);
+			}
+		}
+	}
+}
 
 /* USER CODE END 4 */
 

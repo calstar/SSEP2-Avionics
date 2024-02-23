@@ -17,6 +17,8 @@
   */
 /* USER CODE END Header */
 #include "fatfs.h"
+#include <stdio.h>
+#include <string.h>
 
 uint8_t retSD;    /* Return value for SD */
 char SDPath[4];   /* SD logical drive path */
@@ -31,6 +33,24 @@ void MX_FATFS_Init(void)
 {
   /*## FatFS: Link the SD driver ###########################*/
   retSD = FATFS_LinkDriver(&SD_Driver, SDPath);
+  f_mount(&SDFatFS, (TCHAR const*)SDPath, 0);
+  FILINFO fno;
+  FRESULT result;
+  for(int idx = 0; idx < 100; idx++)
+  {
+
+	char path[20];
+	snprintf(path, 20, "FILENAME%d.txt", idx);
+	result = f_stat(path, &fno);
+	if (result != FR_OK)
+	{
+		Error_Handler();
+	} else if (result == FR_NO_FILE)
+	{
+		strncpy(path, file_name, 20);
+		break;
+	}
+  }
 
   /* USER CODE BEGIN Init */
   /* additional user code for init */
