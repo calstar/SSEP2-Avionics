@@ -19,7 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "fatfs.h"
-
+#include <stdio.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -103,7 +103,7 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+char filename[20];
 /* USER CODE END 0 */
 
 /**
@@ -122,7 +122,22 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  FILINFO fno;
+  FRESULT result;
+  for (int idx = 0; idx < 100; idx++)
+  {
+	printf("%s", filename);
+	snprintf(SDPath, 20, "FILENAME%d.txt", idx);
+	result = f_stat(SDPath, &fno);
+	if (result != FR_OK)
+	{
+	  Error_Handler();
+	}
+	else if (result == FR_NO_FILE)
+	{
+	  break;
+	}
+  }
   /* USER CODE END Init */
 
   /* Configure the system clock */

@@ -32,25 +32,12 @@ FIL SDFile;       /* File object for SD */
 void MX_FATFS_Init(void)
 {
   /*## FatFS: Link the SD driver ###########################*/
-  retSD = FATFS_LinkDriver(&SD_Driver, SDPath);
-  f_mount(&SDFatFS, (TCHAR const*)SDPath, 0);
-  FILINFO fno;
-  FRESULT result;
-  for (int idx = 0; idx < 100; idx++)
-  {
-	snprintf(filename, 20, "FILENAME%d.txt", idx);
-	result = f_stat(filename, &fno);
-	if (result != FR_OK)
-	{
-	  Error_Handler();
-	}
-	else if (result == FR_NO_FILE)
-	{
-	  break;
-	}
-  }
 
+  retSD = FATFS_LinkDriver(&SD_Driver, SDPath);
   /* USER CODE BEGIN Init */
+  f_mount(&SDFatFS, (TCHAR const*)SDPath, 0);
+
+
   /* additional user code for init */
   /* USER CODE END Init */
 }
