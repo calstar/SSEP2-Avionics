@@ -41,6 +41,10 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+
+#define MMC_DEFAULT_BLOCK_SIZE 512
+
+
 ADC_HandleTypeDef hadc1;
 
 CORDIC_HandleTypeDef hcordic;
@@ -56,7 +60,7 @@ I2C_HandleTypeDef hi2c4;
 
 RNG_HandleTypeDef hrng;
 
-MMC_HandleTypeDef hmmc1;
+SD_HandleTypeDef hsd1;
 
 SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi2;
@@ -84,7 +88,7 @@ static void MX_I2C2_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_I2C4_Init(void);
 static void MX_RNG_Init(void);
-static void MX_SDMMC1_MMC_Init(void);
+static void MX_SDMMC1_SD_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_SPI3_Init(void);
@@ -141,7 +145,7 @@ int main(void)
   MX_I2C3_Init();
   MX_I2C4_Init();
   MX_RNG_Init();
-  MX_SDMMC1_MMC_Init();
+  MX_SDMMC1_SD_Init();
   MX_SPI1_Init();
   MX_SPI2_Init();
   MX_SPI3_Init();
@@ -176,6 +180,51 @@ int main(void)
   /* USER CODE END 3 */
 }
 
+
+
+uint16_t sector = 0;
+FATFS FatFS;
+
+
+void Log_Data(uint32_t data)
+{
+	FRESULT write; /* FatFs function common result code */
+	uint32_t bytes_to_write = strlen((char *)data);
+	uint32_t bytes_written; /* File write/read counts */
+	uint8_t wtext[] = "message"; /* File write buffer */
+	uint8_t rtext[_MAX_SS];/* File read buffer */
+	FIL fil;
+
+    f_mount(&FatFS, (TCHAR const*)SDPath, 0);
+
+
+	if(f_mkfs((TCHAR const*)SDPath, FM_ANY, 0, rtext, sizeof(rtext)) != FR_OK)
+  	    {
+  			Error_Handler();
+  	    }
+  		else
+  		{
+  			//Open file for writing (Create)
+  			if(f_open(&fil, "File.txt", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
+  			{
+  				//Error_opening file
+  			}
+  			else
+  			{
+  				//Write to the text file
+  				write = f_write(&fil, (void *)data, bytes_to_write, (void *)&bytes_written);
+  				if((byteswritten == 0) || (res != FR_OK))
+  				{
+  					//Nothing written
+  				}
+  				else
+  				{
+
+  					f_close(&SDFile);
+  				}
+  			}
+  		}
+}
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -640,7 +689,7 @@ static void MX_RNG_Init(void)
   * @param None
   * @retval None
   */
-static void MX_SDMMC1_MMC_Init(void)
+static void MX_SDMMC1_SD_Init(void)
 {
 
   /* USER CODE BEGIN SDMMC1_Init 0 */
@@ -650,16 +699,12 @@ static void MX_SDMMC1_MMC_Init(void)
   /* USER CODE BEGIN SDMMC1_Init 1 */
 
   /* USER CODE END SDMMC1_Init 1 */
-  hmmc1.Instance = SDMMC1;
-  hmmc1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
-  hmmc1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
-  hmmc1.Init.BusWide = SDMMC_BUS_WIDE_1B;
-  hmmc1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
-  hmmc1.Init.ClockDiv = 0;
-  if (HAL_MMC_Init(&hmmc1) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  hsd1.Instance = SDMMC1;
+  hsd1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
+  hsd1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
+  hsd1.Init.BusWide = SDMMC_BUS_WIDE_1B;
+  hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
+  hsd1.Init.ClockDiv = 0;
   /* USER CODE BEGIN SDMMC1_Init 2 */
 
   /* USER CODE END SDMMC1_Init 2 */
