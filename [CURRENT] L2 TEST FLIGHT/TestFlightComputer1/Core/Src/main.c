@@ -41,6 +41,10 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+
+#define MMC_DEFAULT_BLOCK_SIZE 512
+
+
 ADC_HandleTypeDef hadc1;
 
 CORDIC_HandleTypeDef hcordic;
@@ -159,48 +163,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 
   /* USER CODE SD BEGIN 1 */
-  FRESULT write; /* FatFs function common result code */
-  uint32_t byteswritten, bytesread; /* File write/read counts */
-  uint8_t wtext[] = "message"; /* File write buffer */
-  uint8_t rtext[_MAX_SS];/* File read buffer */
+
   /* USER CODE SD END 1 */
 
   /* USER CODE SD BEGIN 2 */
-  	if(f_mount(&SDFatFS, (TCHAR const*)SDPath, 0) != FR_OK)
-  	{
-  		Error_Handler();
-  	}
-  	else
-  	{
-  		if(f_mkfs((TCHAR const*)SDPath, FM_ANY, 0, rtext, sizeof(rtext)) != FR_OK)
-  	    {
-  			Error_Handler();
-  	    }
-  		else
-  		{
-  			//Open file for writing (Create)
-  			if(f_open(&SDFile, "File.txt", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
-  			{
-  				//Error_opening file
-  			}
-  			else
-  			{
 
-  				//Write to the text file
-  				write = f_write(&SDFile, wtext, strlen((char *)wtext), (void *)&byteswritten);
-  				if((byteswritten == 0) || (res != FR_OK))
-  				{
-  					//Nothing written
-  				}
-  				else
-  				{
-
-  					f_close(&SDFile);
-  				}
-  			}
-  		}
-  	}
-  	f_mount(&SDFatFS, (TCHAR const*)NULL, 0);
   /* USER CODE SD END 2 */
 
 
@@ -213,6 +180,51 @@ int main(void)
   /* USER CODE END 3 */
 }
 
+
+
+uint16_t sector = 0;
+FATFS FatFS;
+
+
+void Log_Data(uint32_t data)
+{
+	FRESULT write; /* FatFs function common result code */
+	uint32_t bytes_to_write = strlen((char *)data);
+	uint32_t bytes_written; /* File write/read counts */
+	uint8_t wtext[] = "message"; /* File write buffer */
+	uint8_t rtext[_MAX_SS];/* File read buffer */
+	FIL fil;
+
+    f_mount(&FatFS, (TCHAR const*)SDPath, 0);
+
+
+	if(f_mkfs((TCHAR const*)SDPath, FM_ANY, 0, rtext, sizeof(rtext)) != FR_OK)
+  	    {
+  			Error_Handler();
+  	    }
+  		else
+  		{
+  			//Open file for writing (Create)
+  			if(f_open(&fil, "File.txt", FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
+  			{
+  				//Error_opening file
+  			}
+  			else
+  			{
+  				//Write to the text file
+  				write = f_write(&fil, (void *)data, bytes_to_write, (void *)&bytes_written);
+  				if((byteswritten == 0) || (res != FR_OK))
+  				{
+  					//Nothing written
+  				}
+  				else
+  				{
+
+  					f_close(&SDFile);
+  				}
+  			}
+  		}
+}
 /**
   * @brief System Clock Configuration
   * @retval None
