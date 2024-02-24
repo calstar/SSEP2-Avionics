@@ -65,6 +65,11 @@ SPI_HandleTypeDef hspi6;
 
 UART_HandleTypeDef huart2;
 
+uint8_t rxBuffer[100]; // Adjust the size as per your requirement
+uint8_t rxData;
+uint8_t rxBufferIndex = 0;
+#define BUFFER_SIZE 100 // Adjust buffer size as needed
+
 PCD_HandleTypeDef hpcd_USB_OTG_HS;
 
 /* USER CODE BEGIN PV */
@@ -149,6 +154,7 @@ int main(void)
   MX_USB_OTG_HS_PCD_Init();
   MX_ADC1_Init();
   MX_USART2_UART_Init();
+  HAL_UART_Receive_IT(&huart2, &rxData, 1);
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -940,6 +946,40 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 2 */
 
+}
+
+// USART2 Transmit function
+void USART2_Transmit(uint8_t *data, uint16_t size)
+{
+    HAL_UART_Transmit(&huart2, data, size, 1000);
+}
+
+// USART2 Receive function
+void USART2_Receive(uint8_t *buffer, uint16_t size)
+{
+    HAL_UART_Receive(&huart2, buffer, size, 1000);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART2) {
+    // Process received data here
+    // Example: Copy received data to a buffer
+    rxBuffer[rxBufferIndex++] = rxData;
+
+    // Check if buffer is full or if you received a specific termination character
+    if (rxBufferIndex >= BUFFER_SIZE || rxData == '\n') {
+      // Do something with the received data
+      // Example: Print it back
+      HAL_UART_Transmit(&huart2, rxBuffer, rxBufferIndex, HAL_MAX_DELAY);
+
+      // Reset buffer index for next reception
+      rxBufferIndex = 0;
+    }
+
+    // Start next receive
+    HAL_UART_Receive_IT(&huart2, &rxData, 1);
+  }
 }
 
 /**
