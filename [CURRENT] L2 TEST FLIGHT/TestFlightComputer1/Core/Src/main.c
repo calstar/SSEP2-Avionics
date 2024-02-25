@@ -17,8 +17,12 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <stdio.h>
 #include "main.h"
-
+#include "fatfs.h"
+#include "GNSS.h"
+#include "MS5611.h"
+#include "adxl375.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -31,7 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define X 0.90f //0-1 Filter Variable
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -40,6 +44,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+#define MMC_DEFAULT_BLOCK_SIZE 512
+
+extern uint8_t tim7_10ms_flag;
 ADC_HandleTypeDef hadc1;
 
 CORDIC_HandleTypeDef hcordic;
@@ -65,15 +72,14 @@ SPI_HandleTypeDef hspi6;
 
 UART_HandleTypeDef huart2;
 
+PCD_HandleTypeDef hpcd_USB_OTG_HS;
+
+/* USER CODE BEGIN PV */
+//setup UART Buffer!
 uint8_t rxBuffer[100]; // Adjust the size as per your requirement
 uint8_t rxData;
 uint8_t rxBufferIndex = 0;
 #define BUFFER_SIZE 100 // Adjust buffer size as needed
-
-PCD_HandleTypeDef hpcd_USB_OTG_HS;
-
-/* USER CODE BEGIN PV */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -103,7 +109,8 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+// EMMC FILE NAME SET
+char filename[20];
 /* USER CODE END 0 */
 
 /**
@@ -113,6 +120,7 @@ static void MX_USART2_UART_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
 
   /* USER CODE END 1 */
 
@@ -154,9 +162,45 @@ int main(void)
   MX_USB_OTG_HS_PCD_Init();
   MX_ADC1_Init();
   MX_USART2_UART_Init();
+  //Setup UART
   HAL_UART_Receive_IT(&huart2, &rxData, 1);
-  /* USER CODE BEGIN 2 */
 
+  //Setup EMMC!
+  MX_FATFS_Init();
+  FILINFO fno;
+  FRESULT result;
+  for (int idx = 1; idx < 100; idx++)
+  {
+	printf("%s", filename);
+	snprintf(USERPath, 20, "FILENAME%d.txt", idx);
+	result = f_stat(USERPath, &fno);
+	if (result != FR_OK)
+	{
+	  Error_Handler();
+	}
+	else if (result == FR_NO_FILE)
+	{
+	  break;
+	}
+  }
+
+  /* USER CODE BEGIN 2 */
+  // SPI CS PULLDOWN CODE!
+//PA0,PA4,PE4,PB9, low, PA15 / PC13 switches low = active
+  //This happens automatically(??)
+
+  MS5611_Reset(&hi2c1, &MS5611);
+  MS5611_ReadProm(&hi2c1, &MS5611);
+  MS5611_Reset(&hi2c2, &MS5611_2);
+  MS5611_ReadProm(&hi2c2, &MS5611_2);
+  MS5611_Reset(&hi2c3, &MS5611_3);
+  MS5611_ReadProm(&hi2c3, &MS5611_3);
+
+
+   GNSS_Init(&GNSS_Handle, &hi2c4);
+  HAL_Delay(1000);
+  GNSS_LoadConfig(&GNSS_Handle);
+  uint32_t Timer = HAL_GetTick();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -164,7 +208,64 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+//MS5611 ACCURATE
+	  MS5611_RequestTemperature(&hi2c1,OSR_4096);
+	  MS5611_ReadTemperature(&hi2c1,&MS5611);
+	  MS5611_CalculateTemperature(&MS5611);
+	  MS5611_RequestPressure(&hi2c1, OSR_4096);
+	  MS5611_ReadPressure(&hi2c1,&MS5611);
+	  MS5611_CalculatePressure(&MS5611);
+	  MS5611.Alt = (MS5611_getAltitude1((float)MS5611.P/100.f))*100;
 
+	  MS5611.Alt_Filt = MS5611.Alt_Filt * X + MS5611.Alt * (1.0f-X);
+
+//MS5611 Fast
+	  MS5611_RequestTemperature(&hi2c2,OSR_256);
+	  MS5611_ReadTemperature(&hi2c2,&MS5611_2);
+	  MS5611_CalculateTemperature(&MS5611_2);
+	  MS5611_RequestPressure(&hi2c2, OSR_256);
+	  MS5611_ReadPressure(&hi2c2,&MS5611_2);
+	  MS5611_CalculatePressure(&MS5611_2);
+	  MS5611_2.Alt = (MS5611_getAltitude1((float)MS5611_2.P/100.f))*100;
+
+	  MS5611_2.Alt_Filt = MS5611_2.Alt_Filt * X + MS5611_2.Alt * (1.0f-X);
+
+// MS5607!!
+	  MS5611_RequestTemperature(&hi2c3,OSR_256);
+	  MS5611_ReadTemperature(&hi2c3,&MS5611_3);
+	  MS5611_CalculateTemperature(&MS5611_3);
+	  MS5611_RequestPressure(&hi2c3, OSR_256);
+	  MS5611_ReadPressure(&hi2c3,&MS5611_3);
+	  MS5611_CalculatePressure(&MS5611_3);
+	  MS5611_3.Alt = (MS5611_getAltitude1((float)MS5611_3.P/100.f))*100;
+
+	  MS5611_3.Alt_Filt = MS5611_3.Alt_Filt * X + MS5611_3.Alt * (1.0f-X);
+
+// ADXL375 x 3
+	  adxl375_readings adxl1 = adxl1_read();
+	  adxl375_readings adxl2 = adxl2_read();
+	  adxl375_readings adxl3 = adxl3_read();
+
+	  if ((HAL_GetTick() - Timer) > 1000) {
+	  			GNSS_GetUniqID(&GNSS_Handle);
+	  			GNSS_ParseBuffer(&GNSS_Handle);
+	  			HAL_Delay(250);
+	  			GNSS_GetPVTData(&GNSS_Handle);
+	  			GNSS_ParseBuffer(&GNSS_Handle);
+	  			/*printf("Day: %d-%d-%d \r\n", GNSS_Handle.day, GNSS_Handle.month,GNSS_Handle.year);
+	  			printf("Time: %d:%d:%d \r\n", GNSS_Handle.hour, GNSS_Handle.min,GNSS_Handle.sec);
+	  			printf("Status of fix: %d \r\n", GNSS_Handle.fixType);
+	  			printf("Latitude: %f \r\n", GNSS_Handle.fLat);
+	  			printf("Longitude: %f \r\n",(float) GNSS_Handle.lon / 10000000.0);
+	  			printf("Height above ellipsoid: %d \r\n", GNSS_Handle.height);
+	  			printf("Height above mean sea level: %d \r\n", GNSS_Handle.hMSL);
+	  			printf("Ground Speed (2-D): %d \r\n", GNSS_Handle.gSpeed);
+	  			printf("Unique ID: %04X %04X %04X %04X %04X \n\r",
+	  					GNSS_Handle.uniqueID[0], GNSS_Handle.uniqueID[1],
+	  					GNSS_Handle.uniqueID[2], GNSS_Handle.uniqueID[3],
+	  					GNSS_Handle.uniqueID[4], GNSS_Handle.uniqueID[5]);*/
+	  			Timer = HAL_GetTick();
+	  		}
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -427,7 +528,7 @@ static void MX_I2C1_Init(void)
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
   hi2c1.Init.Timing = 0x20303E5D;
-  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.OwnAddress1 = 238;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c1.Init.OwnAddress2 = 0;
@@ -475,7 +576,7 @@ static void MX_I2C2_Init(void)
   /* USER CODE END I2C2_Init 1 */
   hi2c2.Instance = I2C2;
   hi2c2.Init.Timing = 0x20303E5D;
-  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.OwnAddress1 = 238;
   hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c2.Init.OwnAddress2 = 0;
@@ -523,7 +624,7 @@ static void MX_I2C3_Init(void)
   /* USER CODE END I2C3_Init 1 */
   hi2c3.Instance = I2C3;
   hi2c3.Init.Timing = 0x20303E5D;
-  hi2c3.Init.OwnAddress1 = 0;
+  hi2c3.Init.OwnAddress1 = 238;
   hi2c3.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c3.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c3.Init.OwnAddress2 = 0;
@@ -946,40 +1047,6 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 2 */
 
-}
-
-// USART2 Transmit function
-void USART2_Transmit(uint8_t *data, uint16_t size)
-{
-    HAL_UART_Transmit(&huart2, data, size, 1000);
-}
-
-// USART2 Receive function
-void USART2_Receive(uint8_t *buffer, uint16_t size)
-{
-    HAL_UART_Receive(&huart2, buffer, size, 1000);
-}
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-  if (huart->Instance == USART2) {
-    // Process received data here
-    // Example: Copy received data to a buffer
-    rxBuffer[rxBufferIndex++] = rxData;
-
-    // Check if buffer is full or if you received a specific termination character
-    if (rxBufferIndex >= BUFFER_SIZE || rxData == '\n') {
-      // Do something with the received data
-      // Example: Print it back
-      HAL_UART_Transmit(&huart2, rxBuffer, rxBufferIndex, HAL_MAX_DELAY);
-
-      // Reset buffer index for next reception
-      rxBufferIndex = 0;
-    }
-
-    // Start next receive
-    HAL_UART_Receive_IT(&huart2, &rxData, 1);
-  }
 }
 
 /**
