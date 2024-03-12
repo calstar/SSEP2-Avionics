@@ -57,6 +57,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define BATADC1_Pin GPIO_PIN_4
+#define BATADC1_GPIO_Port GPIOC
 
 /* USER CODE BEGIN Private defines */
 
