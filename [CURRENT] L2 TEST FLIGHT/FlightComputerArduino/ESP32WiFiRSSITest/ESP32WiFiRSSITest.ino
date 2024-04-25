@@ -4,18 +4,18 @@ void setup() {
   Serial.begin(115200);
 
   // Set WiFi to station mode and disconnect from an AP if it was previously connected
-  pinMode (1, OUTPUT);
+  pinMode(1, OUTPUT);
   Serial.println("Setup done");
 }
 
 void loop() {
   Serial.println("scan start");
-  digitalWrite (1, HIGH);	// turn on the LED
+  digitalWrite(1, HIGH);  // turn on the LED
   // WiFi.scanNetworks will return the number of networks found
   int n = WiFi.scanNetworks();
   Serial.println("scan done");
   if (n == 0) {
-      Serial.println("no networks found");
+    Serial.println("no networks found");
   } else {
     Serial.print(n);
     Serial.println(" networks found");
@@ -27,13 +27,13 @@ void loop() {
       Serial.print(" (");
       Serial.print(WiFi.RSSI(i));
       Serial.print(")");
-      Serial.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN)?" ":"*");
+      Serial.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
       delay(10);
     }
   }
   Serial.println("");
   delay(2000);
-  digitalWrite (1, LOW);
+  digitalWrite(1, LOW);
   // Wait a bit before scanning again
   delay(2000);
 }
